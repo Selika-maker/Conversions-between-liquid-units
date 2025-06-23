@@ -1,123 +1,57 @@
-class LiquidVolumeConverter
-  # Conversion factors relative to milliliters (ml)
-  CONVERSION_TABLE = {
-    # US Customary Units
-    'tsp'      => 4.92892,    # US teaspoon
-    'tbsp'     => 14.7868,    # US tablespoon
-    'fl-oz'    => 29.5735,    # US fluid ounce
-    'cup'      => 236.588,    # US legal cup
-    'pint'     => 473.176,    # US liquid pint
-    'quart'    => 946.353,    # US liquid quart
-    'gallon'   => 3785.41,    # US liquid gallon
-    
-    # Metric Units
-    'ml'       => 1,
-    'cl'       => 10,         # centiliter
-    'dl'       => 100,        # deciliter
-    'l'        => 1000,       # liter
-    'm3'       => 1_000_000,  # cubic meter
-    'cc'       => 1           # cubic centimeter (same as ml)
-  }.freeze
+require 'minitest/autorun'
+require './liquidvolumeconverter'  # Assuming your class is in this file
 
-  # Unit aliases for flexible input
-  UNIT_ALIASES = {
-    'teaspoon' => 'tsp', 'teaspoons' => 'tsp',
-    'tablespoon' => 'tbsp', 'tablespoons' => 'tbsp',
-    'fluid-ounce' => 'fl-oz', 'fluid-ounces' => 'fl-oz',
-    'ounce' => 'fl-oz', 'ounces' => 'fl-oz',
-    'milliliter' => 'ml', 'millilitre' => 'ml', 'milliliters' => 'ml',
-    'centiliter' => 'cl', 'centilitre' => 'cl',
-    'deciliter' => 'dl', 'decilitre' => 'dl',
-    'liter' => 'l', 'litre' => 'l', 'liters' => 'l',
-    'cubic-meter' => 'm3', 'cubic-centimeter' => 'cc'
-  }.freeze
-
-  attr_reader :value, :source_unit, :target_unit
-
-  def initialize(value, source_unit, target_unit)
-    @value = value.to_f
-    @source_unit = normalize_unit(source_unit)
-    @target_unit = normalize_unit(target_unit)
-    validate_units!
+class TestLiquidVolumeConverter < Minitest::Test
+  def setup
+    @converter = LiquidVolumeConverter
   end
 
-  def convert
-    (value * ml_per_source_unit / ml_per_target_unit).round(6)
+  # Test valid conversions
+  def test_basic_conversions
+    assert_in_delta 236.588, @converter.convert(1, 'cup', 'ml'), 0.001
+    assert_in_delta 3.78541, @converter.convert(1, 'gallon', 'l'), 0.001
+    assert_in_delta 29.5735, @converter.convert(1, 'fl-oz', 'ml'), 0.001
+    assert_in_delta 14.7868, @converter.convert(1, 'tbsp', 'ml'), 0.001
   end
 
-  def to_s
-    "#{value} #{source_unit} = #{convert} #{target_unit}"
+  def test_metric_conversions
+    assert_in_delta 1000, @converter.convert(1, 'l', 'ml'), 0.001
+    assert_in_delta 0.1, @converter.convert(100, 'ml', 'cl'), 0.001
+    assert_in_delta 10, @converter.convert(1, 'dl', 'cl'), 0.001
   end
 
-  class << self
-    def supported_units
-      CONVERSION_TABLE.keys.sort
-    end
-
-    def convert(value, from, to)
-      new(value, from, to).convert
-    end
-
-    def interactive_converter
-      puts "Liquid Volume Converter"
-      puts "Supported units: #{supported_units.join(', ')}"
-      puts "You can also use common names like 'teaspoon', 'liter', etc."
-      puts "-" * 50
-
-      loop do
-        print "\nEnter value to convert (or 'q' to quit): "
-        input = gets.chomp
-        break if input.downcase == 'q'
-
-        begin
-          value = Float(input)
-        rescue ArgumentError
-          puts "Error: Please enter a valid number"
-          next
-        end
-
-        print "Enter source unit (from): "
-        from_unit = gets.chomp
-
-        print "Enter target unit (to): "
-        to_unit = gets.chomp
-
-        begin
-          converter = new(value, from_unit, to_unit)
-          puts converter.to_s
-        rescue ArgumentError => e
-          puts "Error: #{e.message}"
-        end
-      end
-      puts "Goodbye!"
-    end
+  def test_unit_aliases
+    assert_in_delta 236.588, @converter.convert(1, 'CUP', 'milliliter'), 0.001
+    assert_in_delta 29.5735, @converter.convert(1, 'fluid-ounce', 'ml'), 0.001
+    assert_in_delta 14.7868, @converter.convert(1, 'Tablespoons', 'ml'), 0.001
   end
 
-  private
-
-  def normalize_unit(unit)
-    unit = unit.downcase.gsub(/\s+/, '-')
-    UNIT_ALIASES.fetch(unit, unit)
+  def test_reverse_conversions
+    assert_in_delta 1, @converter.convert(236.588, 'ml', 'cup'), 0.001
+    assert_in_delta 1, @converter.convert(1000, 'ml', 'l'), 0.001
+    assert_in_delta 1, @converter.convert(29.5735, 'ml', 'fl-oz'), 0.001
   end
 
-  def validate_units!
-    unless valid_unit?(source_unit) && valid_unit?(target_unit)
-      raise ArgumentError, "Invalid unit. Supported units: #{self.class.supported_units.join(', ')}"
-    end
+  # Test error handling
+  def test_invalid_units
+    assert_raises(ArgumentError) { @converter.convert(1, 'foo', 'cup') }
+    assert_raises(ArgumentError) { @converter.convert(1, 'cup', 'bar') }
   end
 
-  def valid_unit?(unit)
-    CONVERSION_TABLE.key?(unit)
+  def test_non_numeric_values
+    assert_raises(ArgumentError) { LiquidVolumeConverter.new('abc', 'cup', 'ml') }
   end
 
-  def ml_per_source_unit
-    CONVERSION_TABLE[source_unit]
+  def test_supported_units
+    assert_includes @converter.supported_units, 'tsp'
+    assert_includes @converter.supported_units, 'l'
+    assert_includes @converter.supported_units, 'gallon'
+    refute_includes @converter.supported_units, 'kilogram'  # Not a volume unit
   end
 
-  def ml_per_target_unit
-    CONVERSION_TABLE[target_unit]
+  def test_instance_methods
+    conv = LiquidVolumeConverter.new(2, 'cup', 'ml')
+    assert_in_delta 473.176, conv.convert, 0.001
+    assert_equal "2.0 cup = 473.176 ml", conv.to_s
   end
 end
-
-# Start the interactive converter if run directly
-LiquidVolumeConverter.interactive_converter if __FILE__ == $0
