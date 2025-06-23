@@ -1,57 +1,65 @@
+# test_liquid_converter.rb
+
 require 'minitest/autorun'
-require './liquidvolumeconverter'  # Assuming your class is in this file
+require './liquidconverter'
 
-class TestLiquidVolumeConverter < Minitest::Test
+class TestLiquidConverter < Minitest::Test
   def setup
-    @converter = LiquidVolumeConverter
+    @converter = LiquidConverter.new(1, :cup, :quart)
   end
 
-  # Test valid conversions
-  def test_basic_conversions
-    assert_in_delta 236.588, @converter.convert(1, 'cup', 'ml'), 0.001
-    assert_in_delta 3.78541, @converter.convert(1, 'gallon', 'l'), 0.001
-    assert_in_delta 29.5735, @converter.convert(1, 'fl-oz', 'ml'), 0.001
-    assert_in_delta 14.7868, @converter.convert(1, 'tbsp', 'ml'), 0.001
+  def test_initialization
+    assert_equal 1, @converter.amount
+    assert_equal :cup, @converter.from_unit
+    assert_equal :quart, @converter.to_unit
   end
 
-  def test_metric_conversions
-    assert_in_delta 1000, @converter.convert(1, 'l', 'ml'), 0.001
-    assert_in_delta 0.1, @converter.convert(100, 'ml', 'cl'), 0.001
-    assert_in_delta 10, @converter.convert(1, 'dl', 'cl'), 0.001
+  def test_conversion_factors
+    # Test some key conversion factors
+    assert_equal 8, LiquidConverter::CONVERSION_FACTORS[:cup][:factor]
+    assert_equal 16, LiquidConverter::CONVERSION_FACTORS[:pint][:factor]
+    assert_equal 32, LiquidConverter::CONVERSION_FACTORS[:quart][:factor]
+    assert_equal 128, LiquidConverter::CONVERSION_FACTORS[:gallon][:factor]
   end
 
-  def test_unit_aliases
-    assert_in_delta 236.588, @converter.convert(1, 'CUP', 'milliliter'), 0.001
-    assert_in_delta 29.5735, @converter.convert(1, 'fluid-ounce', 'ml'), 0.001
-    assert_in_delta 14.7868, @converter.convert(1, 'Tablespoons', 'ml'), 0.001
+  def test_convert_cups_to_quarts
+    assert_in_delta 0.25, @converter.convert(1, :cup, :quart), 0.001
+    assert_in_delta 1.0, @converter.convert(4, :cup, :quart), 0.001
   end
 
-  def test_reverse_conversions
-    assert_in_delta 1, @converter.convert(236.588, 'ml', 'cup'), 0.001
-    assert_in_delta 1, @converter.convert(1000, 'ml', 'l'), 0.001
-    assert_in_delta 1, @converter.convert(29.5735, 'ml', 'fl-oz'), 0.001
+  def test_convert_gallons_to_pints
+    assert_in_delta 8, LiquidConverter.new.convert(1, :gallon, :pint), 0.001
   end
 
-  # Test error handling
-  def test_invalid_units
-    assert_raises(ArgumentError) { @converter.convert(1, 'foo', 'cup') }
-    assert_raises(ArgumentError) { @converter.convert(1, 'cup', 'bar') }
+  def test_convert_quarts_to_cups
+    assert_in_delta 4, LiquidConverter.new.convert(1, :quart, :cup), 0.001
   end
 
-  def test_non_numeric_values
-    assert_raises(ArgumentError) { LiquidVolumeConverter.new('abc', 'cup', 'ml') }
+  def test_convert_tablespoons_to_teaspoons
+    assert_in_delta 3, LiquidConverter.new.convert(1, :tablespoon, :teaspoon), 0.001
   end
 
-  def test_supported_units
-    assert_includes @converter.supported_units, 'tsp'
-    assert_includes @converter.supported_units, 'l'
-    assert_includes @converter.supported_units, 'gallon'
-    refute_includes @converter.supported_units, 'kilogram'  # Not a volume unit
+  def test_convert_ml_to_liters
+    assert_in_delta 1, LiquidConverter.new.convert(1000, :ml, :liter), 0.001
   end
 
-  def test_instance_methods
-    conv = LiquidVolumeConverter.new(2, 'cup', 'ml')
-    assert_in_delta 473.176, conv.convert, 0.001
-    assert_equal "2.0 cup = 473.176 ml", conv.to_s
+  def test_convert_with_string_units
+    assert_in_delta 2, LiquidConverter.new.convert(1, 'quart', 'pint'), 0.001
+  end
+
+  def test_convert_with_mixed_case_units
+    assert_in_delta 4, LiquidConverter.new.convert(1, 'Quart', 'Cup'), 0.001
+  end
+
+  def test_invalid_unit_raises_error
+    assert_raises(ArgumentError) { LiquidConverter.new.convert(1, :quart, :invalid) }
+    assert_raises(ArgumentError) { LiquidConverter.new.convert(1, :invalid, :cup) }
+  end
+
+  def test_available_units
+    units = LiquidConverter.available_units
+    assert units.key?(:cup)
+    assert units.key?(:gallon)
+    assert_equal "fluid ounce", units[:fluid_ounce]
   end
 end
