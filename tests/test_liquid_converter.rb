@@ -1,7 +1,7 @@
 # test_liquid_converter.rb
 
 require 'minitest/autorun'
-require './liquidconverter'
+require './liquid_converter'
 
 class TestLiquidConverter < Minitest::Test
   def setup
