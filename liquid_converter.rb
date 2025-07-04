@@ -4,7 +4,7 @@ class LiquidConverter
   # Accurate conversion factors (all based on US standard measurements)
   CONVERSION_FACTORS = {
     ml: { 
-      factor: 29.57353,   # 1 fl oz = 29.57353 mililiters
+      factor: 29.57353,   # 1 fl oz = 29.57353 milliliters
       name: "milliliter" 
     },
     teaspoon: { 
