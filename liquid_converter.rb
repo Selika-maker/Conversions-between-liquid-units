@@ -1,18 +1,18 @@
 # liquid_converter.rb
 
 class LiquidConverter
-  # Accurate conversion factors (all based on US standard measurements)
+  # Accurate conversion factors (all in terms of how many fluid ounces in 1 unit)
   CONVERSION_FACTORS = {
     ml: { 
-      factor: 29.57353,   # 1 fl oz = 29.57353 milliliters
+      factor: 0.033814,   # 1 ml = 0.033814 fl oz
       name: "milliliter" 
     },
     teaspoon: { 
-      factor: 6,          # 1 fl oz = 6 teaspoons
+      factor: 1.0 / 6,     # 1 teaspoon = 1/6 fl oz
       name: "teaspoon" 
     },
     tablespoon: { 
-      factor: 2,          # 1 fl oz = 2 tablespoons
+      factor: 1.0 / 2,     # 1 tablespoon = 0.5 fl oz
       name: "tablespoon" 
     },
     fluid_ounce: { 
@@ -36,7 +36,7 @@ class LiquidConverter
       name: "gallon" 
     },
     liter: { 
-      factor: 33.81402,     # 1 liter ≈ 33.81402 fl oz
+      factor: 33.814,     # 1 liter = 33.814 fl oz
       name: "liter" 
     }
   }.freeze
@@ -55,7 +55,6 @@ class LiquidConverter
 
     validate_units(from_unit, to_unit)
 
-    # Convert to fluid ounces first, then to target unit
     amount_in_fl_oz = amount.to_f * CONVERSION_FACTORS[from_unit][:factor]
     result = amount_in_fl_oz / CONVERSION_FACTORS[to_unit][:factor]
     result.round(4)
@@ -117,7 +116,6 @@ class LiquidConverter
   end
 end
 
-# Run the CLI if this file is executed directly
 if __FILE__ == $0
   LiquidConverter.run_cli
 end
